@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import api, { getCsrfToken } from '@/lib/axios';
+import api from '@/lib/axios';
 import { LoginCredentials, LoginResponse } from '@/types/auth';
 import toast from 'react-hot-toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -30,20 +30,27 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await getCsrfToken();
+      console.log('📤 Sending login request:', credentials);
       
       const { data } = await api.post<LoginResponse>('/login', credentials);
+      console.log('📥 Login response:', data);
       
-      if (data.access_token) {
-        localStorage.setItem('token', data.access_token);
-        document.cookie = `token=${data.access_token}; path=/; secure; samesite=strict`;
+      if (data.token) {
+        // Simpan token
+        localStorage.setItem('token', data.token);
+        document.cookie = `token=${data.token}; path=/`;
         
+        console.log('💾 Stored token:', {
+          localStorage: localStorage.getItem('token'),
+          cookie: document.cookie
+        });
+
         toast.success('Login successful!');
         router.push('/dashboard');
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      console.error('Login error:', {
+      console.error('❌ Login error:', {
         message: error.response?.data?.message,
         status: error.response?.status,
         data: error.response?.data
