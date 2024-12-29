@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { DeletePostModal } from '@/components/ui/delete-post-modal';
+import { Button } from '@/components/ui/button';
 
 interface Post {
   id: number;
@@ -41,7 +43,9 @@ export default function PostsPage() {
   const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentPage, setCurrentPage] = useState(1);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
@@ -62,12 +66,10 @@ export default function PostsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this post?')) return;
-
     try {
       await api.delete(`/post/${id}`);
       toast.success('Post deleted successfully');
-      fetchPosts(currentPage); // Refresh current page
+      fetchPosts(currentPage);
     } catch (error) {
       console.error('Failed to delete post:', error);
       toast.error('Failed to delete post');
@@ -127,18 +129,16 @@ export default function PostsPage() {
                     {format(new Date(post.created_at), 'dd MMM yyyy')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => router.push(`/dashboard/post/${post.id}/edit`)}
-                      className="text-indigo-600 hover:text-indigo-900"
                     >
                       <Pencil className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(post.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    </Button>
+                    <DeletePostModal 
+                      onConfirm={() => handleDelete(post.id)} 
+                    />
                   </td>
                 </tr>
               ))
