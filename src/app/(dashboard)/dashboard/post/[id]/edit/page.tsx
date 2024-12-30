@@ -18,7 +18,7 @@ function EditPostForm({ id }: { id: string }) {
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const response = await api.get(`/post/${id}`);
+        const response = await api.get(`/posts/${id}`);
         const post = response.data;
         setTitle(post.title);
         setContent(post.content);
@@ -37,7 +37,7 @@ function EditPostForm({ id }: { id: string }) {
     setLoading(true);
 
     try {
-      await api.put(`/post/${id}`, {
+      await api.put(`/posts/${id}`, {
         title,
         content,
         status

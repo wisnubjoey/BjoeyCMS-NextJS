@@ -6,6 +6,8 @@ import TipTapEditor from '@/components/editor/TipTapEditor';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 
+const MAX_TITLE_LENGTH = 255;
+
 export default function CreatePostPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -17,7 +19,7 @@ export default function CreatePostPage() {
     setLoading(true);
 
     try {
-      await api.post('/post', {
+      await api.post('/posts', {
         title,
         content,
         status: 'draft'
@@ -42,15 +44,27 @@ export default function CreatePostPage() {
       <div className="bg-white rounded-lg shadow p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Title
-            </label>
+            <div className="flex justify-between items-center">
+              <label className="block text-sm font-medium text-gray-700">
+                Title
+              </label>
+              <span className={`text-sm ${
+                title.length > MAX_TITLE_LENGTH ? 'text-red-500' : 'text-gray-500'
+              }`}>
+                {title.length}/{MAX_TITLE_LENGTH} characters
+              </span>
+            </div>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              className={`mt-1 block w-full rounded-md border px-3 py-2 ${
+                title.length > MAX_TITLE_LENGTH 
+                  ? 'border-red-500 focus:ring-red-500' 
+                  : 'border-gray-300 focus:ring-indigo-500'
+              }`}
               required
+              maxLength={MAX_TITLE_LENGTH}
             />
           </div>
 
