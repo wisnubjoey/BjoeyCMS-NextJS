@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileText, Image, Settings } from 'lucide-react';
+import { LayoutDashboard, FileText, Image, Settings, Menu } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
   
   const menuItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/dashboard/navbar', label: 'Navbar', icon: Menu },
     { href: '/dashboard/post', label: 'Posts', icon: FileText },
     { href: '/dashboard/media', label: 'Media', icon: Image },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
