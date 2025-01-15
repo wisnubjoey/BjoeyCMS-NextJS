@@ -38,6 +38,9 @@ export default function NavbarPage() {
       link: '',
       type: 'custom' as const
     });
+    const [loadingMenuItems, setLoadingMenuItems] = useState(true);
+    const [showEditMenu, setShowEditMenu] = useState(false);
+    const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
 
     const handleToggleActive = async () => {
       try {
@@ -149,22 +152,35 @@ export default function NavbarPage() {
 
   const fetchMenuItems = async () => {
     try {
-      const response = await api.get(`/navigation`);
+      if (!settings?.id) return;
+      
+      setLoadingMenuItems(true);
+      const response = await api.get(`/navbar/${settings.id}/menu-items`);
       setMenuItems(response.data);
     } catch (error) {
+      console.error('Failed to fetch menu items:', error);
       toast.error('Failed to fetch menu items');
+    } finally {
+      setLoadingMenuItems(false);
     }
   };
 
-  const handleAddMenuItem = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddMenuItem = async () => {
     try {
-      await api.post(`/navigation/items`, newMenuItem);
-      setShowAddMenu(false);
+      if (!settings) return;
+      
+      const response = await api.post(`/navbar/${settings.id}/menu-items`, newMenuItem);
+      
+      // Refresh menu items
+      const menuResponse = await api.get(`/navbar/${settings.id}/menu-items`);
+      setMenuItems(menuResponse.data);
+      
+      // Reset form dan tutup modal
       setNewMenuItem({ title: '', link: '', type: 'custom' });
-      fetchMenuItems();
+      setShowAddMenu(false);
       toast.success('Menu item added successfully');
     } catch (error) {
+      console.error('Failed to add menu item:', error);
       toast.error('Failed to add menu item');
     }
   };
@@ -173,11 +189,36 @@ export default function NavbarPage() {
     if (!confirm('Are you sure you want to delete this menu item?')) return;
 
     try {
-      await api.delete(`/navigation/items/${id}`);
-      fetchMenuItems();
+      await api.delete(`/navbar/menu-items/${id}`);
+      
+      if (settings?.id) {
+        await fetchMenuItems();
+      }
+      
       toast.success('Menu item deleted successfully');
     } catch (error) {
+      console.error('Failed to delete menu item:', error);
       toast.error('Failed to delete menu item');
+    }
+  };
+
+  const handleEditMenuItem = async () => {
+    try {
+      if (!editingMenuItem) return;
+      
+      await api.put(`/navbar/menu-items/${editingMenuItem.id}`, {
+        title: editingMenuItem.title,
+        link: editingMenuItem.link,
+        type: editingMenuItem.type
+      });
+      
+      await fetchMenuItems();
+      setShowEditMenu(false);
+      setEditingMenuItem(null);
+      toast.success('Menu item updated successfully');
+    } catch (error) {
+      console.error('Failed to update menu item:', error);
+      toast.error('Failed to update menu item');
     }
   };
 
@@ -308,7 +349,11 @@ export default function NavbarPage() {
 
         {/* Menu Items List */}
         <div className="space-y-2">
-          {Array.isArray(menuItems) && menuItems.length > 0 ? (
+          {loadingMenuItems ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+          ) : Array.isArray(menuItems) && menuItems.length > 0 ? (
             menuItems.map((item) => (
               <div 
                 key={item.id}
@@ -322,7 +367,13 @@ export default function NavbarPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="p-1 hover:text-indigo-600">
+                  <button 
+                    onClick={() => {
+                      setEditingMenuItem(item);
+                      setShowEditMenu(true);
+                    }}
+                    className="p-1 hover:text-indigo-600"
+                  >
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button 
@@ -339,11 +390,156 @@ export default function NavbarPage() {
           )}
         </div>
 
-        {/* Add Menu Modal */}
+        {/* Add Menu Item Modal */}
         {showAddMenu && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg max-w-md w-full">
-              {/* ... Modal content ... */}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Add Menu Item</h2>
+                <button 
+                  onClick={() => setShowAddMenu(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={newMenuItem.title}
+                    onChange={(e) => setNewMenuItem(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                    placeholder="Enter menu title"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type
+                  </label>
+                  <select
+                    value={newMenuItem.type}
+                    onChange={(e) => setNewMenuItem(prev => ({ ...prev, type: e.target.value as 'custom' | 'page' }))}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  >
+                    <option value="custom">Custom Link</option>
+                    <option value="page">Page</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Link
+                  </label>
+                  <input
+                    type="text"
+                    value={newMenuItem.link}
+                    onChange={(e) => setNewMenuItem(prev => ({ ...prev, link: e.target.value }))}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                    placeholder="Enter menu link"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 mt-6">
+                  <button
+                    onClick={() => setShowAddMenu(false)}
+                    className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddMenuItem}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  >
+                    Add Menu Item
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Menu Item Modal */}
+        {showEditMenu && editingMenuItem && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Edit Menu Item</h2>
+                <button 
+                  onClick={() => {
+                    setShowEditMenu(false);
+                    setEditingMenuItem(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={editingMenuItem.title}
+                    onChange={(e) => setEditingMenuItem(prev => ({ ...prev!, title: e.target.value }))}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                    placeholder="Enter menu title"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type
+                  </label>
+                  <select
+                    value={editingMenuItem.type}
+                    onChange={(e) => setEditingMenuItem(prev => ({ ...prev!, type: e.target.value as 'custom' | 'page' }))}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  >
+                    <option value="custom">Custom Link</option>
+                    <option value="page">Page</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Link
+                  </label>
+                  <input
+                    type="text"
+                    value={editingMenuItem.link}
+                    onChange={(e) => setEditingMenuItem(prev => ({ ...prev!, link: e.target.value }))}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                    placeholder="Enter menu link"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowEditMenu(false);
+                      setEditingMenuItem(null);
+                    }}
+                    className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleEditMenuItem}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  >
+                    Update Menu Item
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

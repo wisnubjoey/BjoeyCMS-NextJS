@@ -121,14 +121,14 @@ export default function MediaPage() {
         {media.map((item) => (
           <div key={item.id} className="bg-white p-4 rounded-lg shadow">
             {item.type === 'image' ? (
-              <img src={item.url} alt={item.filename} className="w-full h-40 object-cover rounded" />
+              <img src={item.url} alt={item.name} className="w-full h-40 object-cover rounded" />
             ) : (
               <video src={item.url} className="w-full h-40 object-cover rounded" controls />
             )}
             <div className="mt-2 flex items-center justify-between">
               <div className="flex items-center">
                 {item.type === 'image' ? <ImageIcon className="w-4 h-4" /> : <VideoIcon className="w-4 h-4" />}
-                <span className="ml-2 text-sm truncate">{item.filename}</span>
+                <span className="ml-2 text-sm truncate">{item.name}</span>
               </div>
               <button 
                 onClick={() => handleDelete(item.id)}
