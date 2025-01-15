@@ -4,14 +4,25 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 import MediaPicker from '@/components/media/MediaPicker';
+import { Plus, GripVertical, Pencil, Trash2 } from 'lucide-react';
 
 // Types
 interface NavbarSettings {
+  id: number;
   is_active: boolean;
   is_generated: boolean;
   logo_url: string | null;
   site_name: string;
   settings: any;
+}
+
+interface MenuItem {
+  id: number;
+  title: string;
+  link: string;
+  type: 'custom' | 'page';
+  order: number;
+  is_active: boolean;
 }
 
 export default function NavbarPage() {
@@ -20,6 +31,13 @@ export default function NavbarPage() {
     const [settings, setSettings] = useState<NavbarSettings | null>(null);
     const [saving, setSaving] = useState(false);
     const [siteName, setSiteName] = useState('');
+    const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+    const [showAddMenu, setShowAddMenu] = useState(false);
+    const [newMenuItem, setNewMenuItem] = useState({
+      title: '',
+      link: '',
+      type: 'custom' as const
+    });
 
     const handleToggleActive = async () => {
       try {
@@ -122,6 +140,46 @@ export default function NavbarPage() {
       setSiteName(settings.site_name);
     }
   }, [settings?.site_name]);
+
+  useEffect(() => {
+    if (settings?.id) {
+      fetchMenuItems();
+    }
+  }, [settings?.id]);
+
+  const fetchMenuItems = async () => {
+    try {
+      const response = await api.get(`/navigation`);
+      setMenuItems(response.data);
+    } catch (error) {
+      toast.error('Failed to fetch menu items');
+    }
+  };
+
+  const handleAddMenuItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post(`/navigation/items`, newMenuItem);
+      setShowAddMenu(false);
+      setNewMenuItem({ title: '', link: '', type: 'custom' });
+      fetchMenuItems();
+      toast.success('Menu item added successfully');
+    } catch (error) {
+      toast.error('Failed to add menu item');
+    }
+  };
+
+  const handleDeleteMenuItem = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this menu item?')) return;
+
+    try {
+      await api.delete(`/navigation/items/${id}`);
+      fetchMenuItems();
+      toast.success('Menu item deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete menu item');
+    }
+  };
 
   if (loading) {
     return <div>Loading...</div>;
@@ -234,6 +292,62 @@ export default function NavbarPage() {
           </div>
         </div>
       )}
+
+      {/* Menu Items Section */}
+      <div className="mt-8 bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-semibold">Menu Items</h2>
+          <button
+            onClick={() => setShowAddMenu(true)}
+            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Menu Item
+          </button>
+        </div>
+
+        {/* Menu Items List */}
+        <div className="space-y-2">
+          {Array.isArray(menuItems) && menuItems.length > 0 ? (
+            menuItems.map((item) => (
+              <div 
+                key={item.id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
+                  <div>
+                    <p className="font-medium">{item.title}</p>
+                    <p className="text-sm text-gray-500">{item.link || '/'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="p-1 hover:text-indigo-600">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteMenuItem(item.id)}
+                    className="p-1 hover:text-red-600"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 text-center py-4">No menu items found</p>
+          )}
+        </div>
+
+        {/* Add Menu Modal */}
+        {showAddMenu && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full">
+              {/* ... Modal content ... */}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
