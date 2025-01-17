@@ -250,29 +250,38 @@ export default function NavbarPage() {
     
     if (!over || active.id === over.id) return;
 
-    setMenuItems((items) => {
-      const oldIndex = items.findIndex((item) => item.id === active.id);
-      const newIndex = items.findIndex((item) => item.id === over.id);
-      
-      return arrayMove(items, oldIndex, newIndex);
-    });
-
     try {
-      // Update order in backend
-      await api.post(`/navbar/${settings?.id}/menu-items/reorder`, {
-        items: menuItems.map((item, index) => ({
+      // Buat array baru dengan urutan yang sudah diupdate
+      const oldIndex = menuItems.findIndex(item => item.id === active.id);
+      const newIndex = menuItems.findIndex(item => item.id === over.id);
+      
+      const newItems = arrayMove(menuItems, oldIndex, newIndex).map((item, index) => ({
+        ...item,
+        order: index + 1
+      }));
+
+      // Update local state dulu
+      setMenuItems(newItems);
+
+      // Kirim data yang sudah diupdate ke backend
+      const response = await api.post(`/navbar/${settings?.id}/menu-items/reorder`, {
+        items: newItems.map(item => ({
           id: item.id,
-          order: index
+          order: item.order
         }))
       });
+
+      // Update state dengan response dari backend
+      setMenuItems(response.data);
       toast.success('Menu order updated');
     } catch (error) {
       console.error('Failed to update menu order:', error);
       toast.error('Failed to update menu order');
-      // Optionally refresh menu items to restore original order
+      // Refresh jika error
       await fetchMenuItems();
     }
   };
+
 
   if (loading) {
     return <div>Loading...</div>;
