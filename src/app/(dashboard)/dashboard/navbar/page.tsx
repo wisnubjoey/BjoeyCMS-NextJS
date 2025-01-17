@@ -5,6 +5,22 @@ import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 import MediaPicker from '@/components/media/MediaPicker';
 import { Plus, GripVertical, Pencil, Trash2 } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { SortableMenuItem } from '@/components/navbar/SortableMenuItem';
 
 // Types
 interface NavbarSettings {
@@ -222,6 +238,42 @@ export default function NavbarPage() {
     }
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+
+    setMenuItems((items) => {
+      const oldIndex = items.findIndex((item) => item.id === active.id);
+      const newIndex = items.findIndex((item) => item.id === over.id);
+      
+      return arrayMove(items, oldIndex, newIndex);
+    });
+
+    try {
+      // Update order in backend
+      await api.post(`/navbar/${settings?.id}/menu-items/reorder`, {
+        items: menuItems.map((item, index) => ({
+          id: item.id,
+          order: index
+        }))
+      });
+      toast.success('Menu order updated');
+    } catch (error) {
+      console.error('Failed to update menu order:', error);
+      toast.error('Failed to update menu order');
+      // Optionally refresh menu items to restore original order
+      await fetchMenuItems();
+    }
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -348,47 +400,40 @@ export default function NavbarPage() {
         </div>
 
         {/* Menu Items List */}
-        <div className="space-y-2">
-          {loadingMenuItems ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            </div>
-          ) : Array.isArray(menuItems) && menuItems.length > 0 ? (
-            menuItems.map((item) => (
-              <div 
-                key={item.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
-                  <div>
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-sm text-gray-500">{item.link || '/'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
+        {loadingMenuItems ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : Array.isArray(menuItems) && menuItems.length > 0 ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={menuItems.map(item => item.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {menuItems.map((item) => (
+                  <SortableMenuItem
+                    key={item.id}
+                    id={item.id}
+                    title={item.title}
+                    link={item.link}
+                    onEdit={() => {
                       setEditingMenuItem(item);
                       setShowEditMenu(true);
                     }}
-                    className="p-1 hover:text-indigo-600"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteMenuItem(item.id)}
-                    className="p-1 hover:text-red-600"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                    onDelete={() => handleDeleteMenuItem(item.id)}
+                  />
+                ))}
               </div>
-            ))
-          ) : (
-            <p className="text-gray-500 text-center py-4">No menu items found</p>
-          )}
-        </div>
+            </SortableContext>
+          </DndContext>
+        ) : (
+          <p className="text-gray-500 text-center py-4">No menu items found</p>
+        )}
 
         {/* Add Menu Item Modal */}
         {showAddMenu && (
