@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 import MediaPicker from '@/components/media/MediaPicker';
-import { Plus, GripVertical, Pencil, Trash2 } from 'lucide-react';
+import { Plus} from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -23,13 +23,22 @@ import {
 import { SortableMenuItem } from '@/components/navbar/SortableMenuItem';
 
 // Types
+interface NavbarStyle {
+  backgroundColor: string;
+  textColor: string;
+  padding: 'small' | 'medium' | 'large';
+  width: 'full' | 'contained';
+}
+
 interface NavbarSettings {
   id: number;
   is_active: boolean;
   is_generated: boolean;
   logo_url: string | null;
   site_name: string;
-  settings: any;
+  settings: {
+    style: NavbarStyle;
+  };
 }
 
 interface MenuItem {
@@ -147,6 +156,28 @@ export default function NavbarPage() {
       toast.error('Failed to update site name');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleStyleChange = async (property: keyof NavbarStyle, value: string) => {
+    try {
+      const newStyle = {
+        ...settings?.settings?.style,
+        [property]: value
+      };
+
+      const response = await api.put('/navbar/update', {
+        ...settings,
+        settings: {
+          ...settings?.settings,
+          style: newStyle
+        }
+      });
+
+      setSettings(response.data);
+      toast.success('Style updated successfully');
+    } catch (error) {
+      toast.error('Failed to update style');
     }
   };
 
@@ -367,26 +398,120 @@ export default function NavbarPage() {
               </div>
             </div>
 
+            {/* Navbar Style Section */}
+            <div className="mt-8">
+              <h2 className="text-lg font-semibold mb-4">Navbar Style</h2>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Background Color */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Background Color
+                  </label>
+                  <select
+                    value={settings.settings?.style?.backgroundColor || 'white'}
+                    onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  >
+                    <option value="white">White</option>
+                    <option value="gray">Gray</option>
+                    <option value="dark">Dark</option>
+                  </select>
+                </div>
+
+                {/* Text Color */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Text Color
+                  </label>
+                  <select
+                    value={settings.settings?.style?.textColor || 'dark'}
+                    onChange={(e) => handleStyleChange('textColor', e.target.value)}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  >
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                  </select>
+                </div>
+
+                {/* Padding */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Padding
+                  </label>
+                  <select
+                    value={settings.settings?.style?.padding || 'medium'}
+                    onChange={(e) => handleStyleChange('padding', e.target.value)}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  >
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                  </select>
+                </div>
+
+                {/* Width */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Width
+                  </label>
+                  <select
+                    value={settings.settings?.style?.width || 'contained'}
+                    onChange={(e) => handleStyleChange('width', e.target.value)}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  >
+                    <option value="contained">Contained</option>
+                    <option value="full">Full Width</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             {/* Preview Section */}
             <div className="mt-8">
               <h3 className="text-sm font-medium text-gray-700 mb-2">Preview</h3>
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <div className="flex items-center justify-between max-w-6xl mx-auto">
-                  <div className="flex items-center gap-4">
-                    {settings.logo_url && (
-                      <img 
-                        src={settings.logo_url} 
-                        alt="Logo" 
-                        className="h-8 w-auto object-contain"
-                      />
-                    )}
-                    <span className="font-medium">{settings.site_name}</span>
-                  </div>
-                  {/* Sample menu items */}
-                  <div className="flex gap-4 text-sm">
-                    <span>Home</span>
-                    <span>About</span>
-                    <span>Contact</span>
+              <div 
+                className={`border rounded-lg ${
+                  settings.settings?.style?.backgroundColor === 'dark' ? 'bg-gray-800' :
+                  settings.settings?.style?.backgroundColor === 'gray' ? 'bg-gray-100' : 'bg-white'
+                }`}
+              >
+                <div 
+                  className={`
+                    ${settings.settings?.style?.width === 'contained' ? 'max-w-6xl mx-auto' : 'w-full'}
+                    ${settings.settings?.style?.padding === 'small' ? 'px-2 py-2' : 
+                      settings.settings?.style?.padding === 'large' ? 'px-8 py-6' : 'px-4 py-4'}
+                  `}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {settings.logo_url && (
+                        <img 
+                          src={settings.logo_url} 
+                          alt="Logo" 
+                          className="h-8 w-auto object-contain"
+                        />
+                      )}
+                      <span className={`font-medium ${
+                        settings.settings?.style?.textColor === 'light' ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {settings.site_name}
+                      </span>
+                    </div>
+                    <div className="flex gap-4 text-sm">
+                      {menuItems.map((item) => (
+                        <a
+                          key={item.id}
+                          href={item.link || '#'}
+                          className={`${
+                            settings.settings?.style?.textColor === 'light' 
+                              ? 'text-gray-300 hover:text-white' 
+                              : 'text-gray-600 hover:text-gray-900'
+                          } transition-colors`}
+                        >
+                          {item.title}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
