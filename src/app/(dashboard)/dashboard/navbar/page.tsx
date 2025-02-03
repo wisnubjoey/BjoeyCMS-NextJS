@@ -28,6 +28,7 @@ interface NavbarStyle {
   textColor: string;
   padding: 'small' | 'medium' | 'large';
   width: 'full' | 'contained';
+  menuAlignment: 'start' | 'center' | 'end';
 }
 
 interface NavbarSettings {
@@ -463,6 +464,22 @@ export default function NavbarPage() {
                     <option value="full">Full Width</option>
                   </select>
                 </div>
+
+                {/* Menu Alignment */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Menu Alignment
+                  </label>
+                  <select
+                    value={settings.settings?.style?.menuAlignment || 'end'}
+                    onChange={(e) => handleStyleChange('menuAlignment', e.target.value)}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  >
+                    <option value="start">Left</option>
+                    <option value="center">Center</option>
+                    <option value="end">Right</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -482,8 +499,13 @@ export default function NavbarPage() {
                       settings.settings?.style?.padding === 'large' ? 'px-8 py-6' : 'px-4 py-4'}
                   `}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                  <div className={`
+                    flex items-center
+                    ${settings.settings?.style?.menuAlignment === 'center' ? 'justify-center gap-8' : 
+                      settings.settings?.style?.menuAlignment === 'start' ? 'justify-start gap-8' : 
+                      'justify-between'}
+                  `}>
+                    <div className="flex items-center gap-4 shrink-0">
                       {settings.logo_url && (
                         <img 
                           src={settings.logo_url} 
@@ -497,7 +519,9 @@ export default function NavbarPage() {
                         {settings.site_name}
                       </span>
                     </div>
-                    <div className="flex gap-4 text-sm">
+                    <div className={`flex gap-4 text-sm ${
+                      settings.settings?.style?.menuAlignment === 'center' ? 'flex-1 justify-center' : ''
+                    }`}>
                       {menuItems.map((item) => (
                         <a
                           key={item.id}
