@@ -12,7 +12,8 @@ import {
   LayoutTemplate,
   ChevronDown,
   ChevronUp,
-  ListCheck
+  ListCheck,
+  AlignEndHorizontal
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -51,9 +52,12 @@ const menuItems: MenuItem[] = [
         name: "Features",
         path: "/dashboard/features",
         icon: ListCheck
+      },
+      {
+        name: "Footer",
+        path: "/dashboard/footer",
+        icon: AlignEndHorizontal
       }
-
-    
     ]
   },
   {
