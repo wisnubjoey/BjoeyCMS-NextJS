@@ -11,7 +11,8 @@ import {
   Navigation,
   LayoutTemplate,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ListCheck
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -45,7 +46,14 @@ const menuItems: MenuItem[] = [
         name: "Hero Section",
         path: "/dashboard/hero",
         icon: LayoutTemplate
+      },
+      {
+        name: "Features",
+        path: "/dashboard/features",
+        icon: ListCheck
       }
+
+    
     ]
   },
   {
@@ -63,7 +71,9 @@ const menuItems: MenuItem[] = [
     path: "/dashboard/settings",
     icon: Settings
   }
+
 ];
+
 
 export default function Sidebar() {
   const pathname = usePathname();

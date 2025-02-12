@@ -17,7 +17,7 @@ interface Post {
   featured_image: string | null;
   seo_title: string | null;
   seo_description: string | null;
-  tags: string | null;
+  tags: string[] | null;
   status: 'draft' | 'published';
   views: number;
   created_at: string;
@@ -45,29 +45,32 @@ export default function PostsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentPage, setCurrentPage] = useState(1);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [totalPages, setTotalPages] = useState(1);
-  const [hoveredId, setHoveredId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchPosts(currentPage);
   }, [currentPage]);
 
   useEffect(() => {
-    const filtered = posts.filter((post) =>
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    if (!posts) return;
+    
+    const filtered = posts.filter((post) => {
+      const titleMatch = post.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const contentMatch = post.content?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
+      return titleMatch || contentMatch;
+    });
+    
     setFilteredPosts(filtered);
   }, [searchQuery, posts]);
 
   const fetchPosts = async (page: number) => {
     try {
+      setLoading(true);
       const response = await api.get<PaginatedResponse>(`/posts?page=${page}`);
       setPosts(response.data.data);
       setTotalPages(response.data.last_page);
+      setFilteredPosts(response.data.data);
     } catch (error) {
       console.error('Failed to fetch posts:', error);
       toast.error('Failed to load posts');
@@ -78,7 +81,7 @@ export default function PostsPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await api.delete(`/post/${id}`);
+      await api.delete(`/posts/${id}`);
       toast.success('Post deleted successfully');
       fetchPosts(currentPage);
     } catch (error) {
@@ -94,7 +97,6 @@ export default function PostsPage() {
       </div>
     );
   }
-
 
   return (
     <div>
@@ -190,7 +192,28 @@ export default function PostsPage() {
         </table>
       </div>
 
-      {/* Pagination controls bisa ditambahkan di sini jika diperlukan */}
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-4 gap-2">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 rounded bg-gray-100 disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="px-3 py-1">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 rounded bg-gray-100 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

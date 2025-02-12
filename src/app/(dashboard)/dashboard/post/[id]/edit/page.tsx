@@ -7,25 +7,45 @@ import TipTapEditor from '@/components/editor/TipTapEditor';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  status: 'draft' | 'published';
+  // tambahkan field lain jika diperlukan
+}
+
 // Komponen untuk form dan logic
 function EditPostForm({ id }: { id: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [status, setStatus] = useState('draft');
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [post, setPost] = useState<Post | null>(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    status: 'draft'
+  });
 
+  // Fetch existing post data
   useEffect(() => {
     const fetchPost = async () => {
       try {
         const response = await api.get(`/posts/${id}`);
-        const post = response.data;
-        setTitle(post.title);
-        setContent(post.content);
-        setStatus(post.status);
-      } catch (error) {
-        toast.error('Failed to fetch post');
+        const postData = response.data.data || response.data;
+        
+        setPost(postData);
+        setFormData({
+          title: postData.title || '',
+          content: postData.content || '',
+          status: postData.status || 'draft'
+        });
+      } catch (err: any) {
+        console.error('Error fetching post:', err);
+        toast.error(err.response?.data?.message || 'Failed to fetch post');
         router.push('/dashboard/post');
+      } finally {
+        setInitialLoading(false);
       }
     };
 
@@ -37,20 +57,37 @@ function EditPostForm({ id }: { id: string }) {
     setLoading(true);
 
     try {
-      await api.put(`/posts/${id}`, {
-        title,
-        content,
-        status
+      const response = await api.put(`/posts/${id}`, {
+        ...formData,
+        content: formData.content || ''  // Pastikan content tidak undefined
       });
-
-      toast.success('Post updated successfully');
-      router.push('/dashboard/post');
-    } catch (error) {
-      toast.error('Failed to update post');
+      
+      if (response.data) {
+        toast.success('Post updated successfully');
+        router.push('/dashboard/post');
+      }
+    } catch (err: any) {
+      console.error('Error updating post:', err);
+      toast.error(err.response?.data?.message || 'Failed to update post');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  if (initialLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -66,8 +103,8 @@ function EditPostForm({ id }: { id: string }) {
             </label>
             <input
               type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={formData.title}
+              onChange={(e) => handleChange('title', e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
               required
             />
@@ -77,7 +114,12 @@ function EditPostForm({ id }: { id: string }) {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Content
             </label>
-            <TipTapEditor content={content} onChange={setContent} />
+            {!initialLoading && (
+              <TipTapEditor 
+                content={formData.content} 
+                onChange={(newContent) => handleChange('content', newContent)}
+              />
+            )}
           </div>
 
           <div>
@@ -85,8 +127,8 @@ function EditPostForm({ id }: { id: string }) {
               Status
             </label>
             <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              value={formData.status}
+              onChange={(e) => handleChange('status', e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
             >
               <option value="draft">Draft</option>
