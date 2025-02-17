@@ -13,7 +13,8 @@ import {
   ChevronDown,
   ChevronUp,
   ListCheck,
-  AlignEndHorizontal
+  AlignEndHorizontal,
+  File
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -69,6 +70,11 @@ const menuItems: MenuItem[] = [
     title: "Media",
     path: "/dashboard/media",
     icon: Image
+  },
+  {
+    title: "Pages",
+    path: "/dashboard/pages",
+    icon: File
   },
   {
     title: "Settings",
