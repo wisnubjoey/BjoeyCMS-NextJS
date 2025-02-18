@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 import MediaPicker from '@/components/media/MediaPicker';
-import { Plus} from 'lucide-react';
+import { Plus, Check, ChevronDown, X } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -21,6 +21,22 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { SortableMenuItem } from '@/components/navbar/SortableMenuItem';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 // Types
 interface NavbarStyle {
@@ -67,6 +83,8 @@ export default function NavbarPage() {
     const [loadingMenuItems, setLoadingMenuItems] = useState(true);
     const [showEditMenu, setShowEditMenu] = useState(false);
     const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
+    const [availablePages, setAvailablePages] = useState<{ value: string; label: string; }[]>([]);
+    const [selectedPage, setSelectedPage] = useState<string>("");
 
     const handleToggleActive = async () => {
       try {
@@ -213,19 +231,19 @@ export default function NavbarPage() {
     }
   };
 
-  const handleAddMenuItem = async () => {
+  const handleAddMenuItem = async (menuData: { title: string; link: string; type: 'custom' | 'page' }) => {
     try {
       if (!settings) return;
       
-      const response = await api.post(`/navbar/${settings.id}/menu-items`, newMenuItem);
+      const response = await api.post(`/navbar/${settings.id}/menu-items`, {
+        title: menuData.title,
+        link: menuData.link,
+        type: menuData.type
+      });
       
-      // Refresh menu items
-      const menuResponse = await api.get(`/navbar/${settings.id}/menu-items`);
-      setMenuItems(menuResponse.data);
-      
-      // Reset form dan tutup modal
-      setNewMenuItem({ title: '', link: '', type: 'custom' });
+      await fetchMenuItems();
       setShowAddMenu(false);
+      setSelectedPage("");
       toast.success('Menu item added successfully');
     } catch (error) {
       console.error('Failed to add menu item:', error);
@@ -314,6 +332,18 @@ export default function NavbarPage() {
     }
   };
 
+  useEffect(() => {
+    const fetchPages = async () => {
+      try {
+        const response = await api.get('/navbar/available-pages');
+        setAvailablePages(response.data);
+      } catch (error) {
+        console.error('Failed to fetch pages:', error);
+      }
+    };
+
+    fetchPages();
+  }, []);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -599,68 +629,91 @@ export default function NavbarPage() {
             <div className="bg-white p-6 rounded-lg max-w-md w-full">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Add Menu Item</h2>
-                <button 
-                  onClick={() => setShowAddMenu(false)}
+                <button
+                  onClick={() => {
+                    setShowAddMenu(false);
+                    setSelectedPage("");
+                  }}
                   className="text-gray-500 hover:text-gray-700"
                 >
-                  ×
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    value={newMenuItem.title}
-                    onChange={(e) => setNewMenuItem(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
-                    placeholder="Enter menu title"
-                  />
+                  <Label>Select Page</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between"
+                      >
+                        {selectedPage
+                          ? availablePages.find((page) => page.value === selectedPage)?.label
+                          : "Select a page..."}
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search pages..." />
+                        <CommandList>
+                          <CommandEmpty>No page found.</CommandEmpty>
+                          <CommandGroup>
+                            {availablePages.map((page) => (
+                              <CommandItem
+                                key={page.value}
+                                onSelect={() => {
+                                  setSelectedPage(page.value);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedPage === page.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {page.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Type
-                  </label>
-                  <select
-                    value={newMenuItem.type}
-                    onChange={(e) => setNewMenuItem(prev => ({ ...prev, type: e.target.value as 'custom' | 'page' }))}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
-                  >
-                    <option value="custom">Custom Link</option>
-                    <option value="page">Page</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Link
-                  </label>
-                  <input
-                    type="text"
-                    value={newMenuItem.link}
-                    onChange={(e) => setNewMenuItem(prev => ({ ...prev, link: e.target.value }))}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
-                    placeholder="Enter menu link"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 mt-6">
-                  <button
-                    onClick={() => setShowAddMenu(false)}
-                    className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddMenu(false);
+                      setSelectedPage("");
+                    }}
                   >
                     Cancel
-                  </button>
-                  <button
-                    onClick={handleAddMenuItem}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const selectedPageData = availablePages.find(
+                        (p) => p.value === selectedPage
+                      );
+                      if (selectedPageData) {
+                        handleAddMenuItem({
+                          title: selectedPageData.label,
+                          link: selectedPageData.value,
+                          type: 'page'
+                        });
+                      }
+                    }}
+                    disabled={!selectedPage}
                   >
                     Add Menu Item
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
