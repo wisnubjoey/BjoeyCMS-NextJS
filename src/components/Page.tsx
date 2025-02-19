@@ -29,6 +29,7 @@ export default function Page({ slug }: { slug: string }) {
           setPage(response.data);
           setError(null);
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         console.error('Failed to fetch page:', error);
         setError(error.response?.data?.message || 'Page not found');

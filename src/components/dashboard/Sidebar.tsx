@@ -1,11 +1,12 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Image, 
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { motion } from "framer-motion";
+import {
+  LayoutDashboard,
+  FileText,
+  Image,
   Settings,
   Layout,
   Navigation,
@@ -14,9 +15,29 @@ import {
   ChevronUp,
   ListCheck,
   AlignEndHorizontal,
-  File
-} from 'lucide-react';
-import { useState } from 'react';
+  File,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+
+const sidebarVariants = {
+  open: { width: "15rem" },
+  closed: { width: "3.05rem" },
+};
+
+const variants = {
+  open: {
+    x: 0,
+    opacity: 1,
+    transition: { x: { stiffness: 1000, velocity: -100 } },
+  },
+  closed: {
+    x: -20,
+    opacity: 0,
+    transition: { x: { stiffness: 100 } },
+  },
+};
 
 interface MenuItem {
   title: string;
@@ -81,80 +102,89 @@ const menuItems: MenuItem[] = [
     path: "/dashboard/settings",
     icon: Settings
   }
-
 ];
 
-
 export default function Sidebar() {
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const pathname = usePathname();
-  const [openGroup, setOpenGroup] = useState<string | null>("Sections");
+  const [openSection, setOpenSection] = useState<string | null>(null);
 
   return (
-    <div className="bg-white w-64 h-screen border-r">
-      <div className="p-4">
-        <h1 className="text-xl font-bold">CMS Admin</h1>
-      </div>
-      <nav className="mt-4">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          
-          if (item.items) {
-            // Menu with sub-items
-            return (
-              <div key={item.title}>
-                <button
-                  onClick={() => setOpenGroup(openGroup === item.title ? null : item.title)}
-                  className="flex items-center justify-between w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
-                >
-                  <div className="flex items-center">
-                    <Icon className="w-5 h-5 mr-3" />
-                    {item.title}
-                  </div>
-                  {openGroup === item.title ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
+    <motion.div
+      className={cn("sidebar fixed left-0 z-40 h-full shrink-0 border-r bg-background")}
+      initial={isCollapsed ? "closed" : "open"}
+      animate={isCollapsed ? "closed" : "open"}
+      variants={sidebarVariants}
+      onMouseEnter={() => setIsCollapsed(false)}
+      onMouseLeave={() => setIsCollapsed(true)}
+    >
+      <ScrollArea className="h-full py-2">
+        <div className="flex flex-col gap-1 px-2">
+          {menuItems.map((item) => (
+            <div key={item.title}>
+              {!item.items ? (
+                <Link
+                  href={item.path || '#'}
+                  className={cn(
+                    "flex h-8 w-full items-center rounded-md px-2 py-1.5 transition-colors hover:bg-muted hover:text-primary",
+                    pathname === item.path && "bg-muted text-primary"
                   )}
-                </button>
-                
-                {openGroup === item.title && (
-                  <div className="ml-4">
-                    {item.items.map((subItem) => {
-                      const SubIcon = subItem.icon;
-                      return (
+                >
+                  <item.icon className="h-4 w-4" />
+                  <motion.span
+                    variants={variants}
+                    className="ml-2 text-sm font-medium"
+                    animate={isCollapsed ? "closed" : "open"}
+                  >
+                    {!isCollapsed && item.title}
+                  </motion.span>
+                </Link>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <button
+                    onClick={() => setOpenSection(openSection === item.title ? null : item.title)}
+                    className={cn(
+                      "flex h-8 w-full items-center rounded-md px-2 py-1.5 transition-colors hover:bg-muted hover:text-primary",
+                      openSection === item.title && "bg-muted text-primary"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {!isCollapsed && (
+                      <>
+                        <motion.span variants={variants} className="ml-2 flex-1 text-sm font-medium">
+                          {item.title}
+                        </motion.span>
+                        {openSection === item.title ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </>
+                    )}
+                  </button>
+                  {openSection === item.title && !isCollapsed && (
+                    <div className="ml-4 flex flex-col gap-1">
+                      {item.items.map((subItem) => (
                         <Link
                           key={subItem.path}
                           href={subItem.path}
-                          className={`flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 ${
-                            pathname === subItem.path ? 'bg-gray-100' : ''
-                          }`}
+                          className={cn(
+                            "flex h-8 w-full items-center rounded-md px-2 py-1.5 transition-colors hover:bg-muted hover:text-primary",
+                            pathname === subItem.path && "bg-muted text-primary"
+                          )}
                         >
-                          <SubIcon className="w-5 h-5 mr-3" />
-                          {subItem.name}
+                          <subItem.icon className="h-4 w-4" />
+                          <span className="ml-2 text-sm font-medium">{subItem.name}</span>
                         </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          // Menu without sub-items
-          return (
-            <Link
-              key={item.path}
-              href={item.path!}
-              className={`flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 ${
-                pathname === item.path ? 'bg-gray-100' : ''
-              }`}
-            >
-              <Icon className="w-5 h-5 mr-3" />
-              {item.title}
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    </motion.div>
   );
 }
