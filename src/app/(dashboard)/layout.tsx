@@ -1,6 +1,5 @@
 import Sidebar from '@/components/dashboard/Sidebar';
 import Header from '@/components/dashboard/Header';
-import { SessionNavBar } from '@/components/ui/sidebar';
 export default function DashboardLayout({
   children,
 }: {
