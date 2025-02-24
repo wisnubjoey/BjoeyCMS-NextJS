@@ -19,6 +19,7 @@ import {
   LogOut,
   UserCircle,
   ChevronsUpDown,
+  ShoppingCart
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -136,6 +137,11 @@ const menuItems: MenuItem[] = [
     title: "Settings",
     path: "/dashboard/settings",
     icon: Settings
+  },
+  {
+    title: "Products",
+    path: "/dashboard/products",
+    icon: ShoppingCart
   }
 ];
 
@@ -146,7 +152,7 @@ export default function Sidebar() {
 
   return (
     <motion.div
-      className={cn("sidebar fixed left-0 z-40 h-full shrink-0 border-r fixed")}
+      className={cn("sidebar fixed left-0 z-40 h-screen border-r")}
       initial={isCollapsed ? "closed" : "open"}
       animate={isCollapsed ? "closed" : "open"}
       variants={sidebarVariants}
@@ -178,8 +184,7 @@ export default function Sidebar() {
                       >
                         {!isCollapsed && (
                           <>
-                            <p className="text-sm font-medium">Organization</p>
-                            <ChevronsUpDown className="h-4 w-4 text-muted-foreground/50" />
+                            <p className="text-sm font-medium">Bjoey CMS</p>
                           </>
                         )}
                       </motion.li>
